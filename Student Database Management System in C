@@ -1,10 +1,8 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define MAX_STUDENTS 100
 #define NAME_LENGTH 50
-#define FILE_NAME "students.dat"
 
 typedef struct {
     int id;
@@ -12,13 +10,14 @@ typedef struct {
     float gpa;
 } Student;
 
+Student students[MAX_STUDENTS];
+int studentCount = 0;
+
 // Function prototypes
 void addStudent();
 void viewStudents();
 void searchStudent();
 void deleteStudent();
-void saveToFile(Student students[], int count);
-int loadFromFile(Student students[]);
 
 int main() {
     int choice;
@@ -58,13 +57,12 @@ int main() {
 }
 
 void addStudent() {
-    Student student;
-    FILE *file = fopen(FILE_NAME, "ab");
-    if (!file) {
-        printf("Unable to open file for writing.\n");
+    if (studentCount >= MAX_STUDENTS) {
+        printf("Cannot add more students. Maximum limit reached.\n");
         return;
     }
 
+    Student student;
     printf("Enter Student ID: ");
     scanf("%d", &student.id);
     printf("Enter Student Name: ");
@@ -72,84 +70,51 @@ void addStudent() {
     printf("Enter Student GPA: ");
     scanf("%f", &student.gpa);
 
-    fwrite(&student, sizeof(Student), 1, file);
-    fclose(file);
+    students[studentCount++] = student; // Add student to array
     printf("Student added successfully!\n");
 }
 
 void viewStudents() {
-    Student student;
-    FILE *file = fopen(FILE_NAME, "rb");
-    if (!file) {
-        printf("No records found.\n");
+    if (studentCount == 0) {
+        printf("No student records found.\n");
         return;
     }
 
     printf("\nStudent Records:\n");
-    while (fread(&student, sizeof(Student), 1, file)) {
-        printf("ID: %d, Name: %s, GPA: %.2f\n", student.id, student.name, student.gpa);
+    for (int i = 0; i < studentCount; i++) {
+        printf("ID: %d, Name: %s, GPA: %.2f\n", students[i].id, students[i].name, students[i].gpa);
     }
-    fclose(file);
 }
 
 void searchStudent() {
     int id;
-    Student student;
-    int found = 0;
-
     printf("Enter Student ID to search: ");
     scanf("%d", &id);
 
-    FILE *file = fopen(FILE_NAME, "rb");
-    if (!file) {
-        printf("No records found.\n");
-        return;
-    }
-
-    while (fread(&student, sizeof(Student), 1, file)) {
-        if (student.id == id) {
-            printf("Student Found: ID: %d, Name: %s, GPA: %.2f\n", student.id, student.name, student.gpa);
-            found = 1;
-            break;
+    for (int i = 0; i < studentCount; i++) {
+        if (students[i].id == id) {
+            printf("Student Found: ID: %d, Name: %s, GPA: %.2f\n", students[i].id, students[i].name, students[i].gpa);
+            return;
         }
     }
-    fclose(file);
-
-    if (!found) {
-        printf("Student with ID %d not found.\n", id);
-    }
+    printf("Student with ID %d not found.\n", id);
 }
 
 void deleteStudent() {
     int id;
-    Student student;
-    FILE *file = fopen(FILE_NAME, "rb");
-    FILE *tempFile = fopen("temp.dat", "wb");
-
-    if (!file || !tempFile) {
-        printf("Unable to open file.\n");
-        return;
-    }
-
     printf("Enter Student ID to delete: ");
     scanf("%d", &id);
-    int found = 0;
 
-    while (fread(&student, sizeof(Student), 1, file)) {
-        if (student.id == id) {
-            found = 1;
+    for (int i = 0; i < studentCount; i++) {
+        if (students[i].id == id) {
+            // Shift remaining students to the left
+            for (int j = i; j < studentCount - 1; j++) {
+                students[j] = students[j + 1];
+            }
+            studentCount--; // Reduce count
             printf("Student with ID %d deleted.\n", id);
-            continue; // Skip writing this record to the temp file
+            return;
         }
-        fwrite(&student, sizeof(Student), 1, tempFile);
     }
-
-    fclose(file);
-    fclose(tempFile);
-    remove(FILE_NAME);
-    rename("temp.dat", FILE_NAME);
-
-    if (!found) {
-        printf("Student with ID %d not found.\n", id);
-    }
+    printf("Student with ID %d not found.\n", id);
 }
