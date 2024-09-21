@@ -1,0 +1,155 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_STUDENTS 100
+#define NAME_LENGTH 50
+#define FILE_NAME "students.dat"
+
+typedef struct {
+    int id;
+    char name[NAME_LENGTH];
+    float gpa;
+} Student;
+
+// Function prototypes
+void addStudent();
+void viewStudents();
+void searchStudent();
+void deleteStudent();
+void saveToFile(Student students[], int count);
+int loadFromFile(Student students[]);
+
+int main() {
+    int choice;
+
+    do {
+        printf("\nStudent Database Management System\n");
+        printf("1. Add Student\n");
+        printf("2. View Students\n");
+        printf("3. Search Student\n");
+        printf("4. Delete Student\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                addStudent();
+                break;
+            case 2:
+                viewStudents();
+                break;
+            case 3:
+                searchStudent();
+                break;
+            case 4:
+                deleteStudent();
+                break;
+            case 5:
+                printf("Exiting...\n");
+                break;
+            default:
+                printf("Invalid choice! Please try again.\n");
+        }
+    } while (choice != 5);
+
+    return 0;
+}
+
+void addStudent() {
+    Student student;
+    FILE *file = fopen(FILE_NAME, "ab");
+    if (!file) {
+        printf("Unable to open file for writing.\n");
+        return;
+    }
+
+    printf("Enter Student ID: ");
+    scanf("%d", &student.id);
+    printf("Enter Student Name: ");
+    scanf(" %[^\n]", student.name);
+    printf("Enter Student GPA: ");
+    scanf("%f", &student.gpa);
+
+    fwrite(&student, sizeof(Student), 1, file);
+    fclose(file);
+    printf("Student added successfully!\n");
+}
+
+void viewStudents() {
+    Student student;
+    FILE *file = fopen(FILE_NAME, "rb");
+    if (!file) {
+        printf("No records found.\n");
+        return;
+    }
+
+    printf("\nStudent Records:\n");
+    while (fread(&student, sizeof(Student), 1, file)) {
+        printf("ID: %d, Name: %s, GPA: %.2f\n", student.id, student.name, student.gpa);
+    }
+    fclose(file);
+}
+
+void searchStudent() {
+    int id;
+    Student student;
+    int found = 0;
+
+    printf("Enter Student ID to search: ");
+    scanf("%d", &id);
+
+    FILE *file = fopen(FILE_NAME, "rb");
+    if (!file) {
+        printf("No records found.\n");
+        return;
+    }
+
+    while (fread(&student, sizeof(Student), 1, file)) {
+        if (student.id == id) {
+            printf("Student Found: ID: %d, Name: %s, GPA: %.2f\n", student.id, student.name, student.gpa);
+            found = 1;
+            break;
+        }
+    }
+    fclose(file);
+
+    if (!found) {
+        printf("Student with ID %d not found.\n", id);
+    }
+}
+
+void deleteStudent() {
+    int id;
+    Student student;
+    FILE *file = fopen(FILE_NAME, "rb");
+    FILE *tempFile = fopen("temp.dat", "wb");
+
+    if (!file || !tempFile) {
+        printf("Unable to open file.\n");
+        return;
+    }
+
+    printf("Enter Student ID to delete: ");
+    scanf("%d", &id);
+    int found = 0;
+
+    while (fread(&student, sizeof(Student), 1, file)) {
+        if (student.id == id) {
+            found = 1;
+            printf("Student with ID %d deleted.\n", id);
+            continue; // Skip writing this record to the temp file
+        }
+        fwrite(&student, sizeof(Student), 1, tempFile);
+    }
+
+    fclose(file);
+    fclose(tempFile);
+    remove(FILE_NAME);
+    rename("temp.dat", FILE_NAME);
+
+    if (!found) {
+        printf("Student with ID %d not found.\n", id);
+    }
+}
